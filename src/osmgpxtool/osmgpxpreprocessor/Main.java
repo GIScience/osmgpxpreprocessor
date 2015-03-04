@@ -40,7 +40,7 @@ public class Main {
 	static Logger LOGGER = LoggerFactory.getLogger(Main.class);
 	
 	
-	public static void main(String[] args) throws ClassNotFoundException {
+	public static void main(String[] args) throws ClassNotFoundException, IOException {
 		Properties props = new Properties();
 		try {
 			 props.load(Main.class.getResourceAsStream("/preprocessor.properties"));

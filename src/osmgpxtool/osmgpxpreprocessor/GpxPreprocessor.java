@@ -11,6 +11,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 
+import junit.framework.Assert;
+
 import org.geotools.geojson.geom.GeometryJSON;
 import org.hsqldb.lib.StringInputStream;
 import org.json.JSONArray;
@@ -24,6 +26,7 @@ import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.GeometryFactory;
 import com.vividsolutions.jts.geom.LineString;
 import com.vividsolutions.jts.geom.MultiLineString;
+import com.vividsolutions.jts.geom.PrecisionModel;
 
 import osmgpxtool.osmgpxpreprocessor.gps.GpsTrace;
 import osmgpxtool.osmgpxpreprocessor.gps.GpsTracePart;
@@ -49,7 +52,7 @@ public class GpxPreprocessor {
 
 	}
 
-	public void run() {
+	public void run() throws IOException {
 		// get GPS traces
 		// Gps3DDataSource gpsData = new Gps3DDataSource(con,
 		// p.getProperty("t_gpxName"),p.getProperty("t_gpxGeomCol"));
@@ -61,14 +64,15 @@ public class GpxPreprocessor {
 			rs = s.executeQuery("SELECT " + p.getProperty("t_gpxIdCol") + "," + "ST_ASGEOJSON("
 					+ p.getProperty("t_gpxGeomCol") + ") as " + p.getProperty("t_gpxGeomCol") + " FROM "
 					+ p.getProperty("t_gpxName") + ";");
-
+			int counter = 0;
 			while (rs.next()) {
 				GpsTrace trace = new GpsTrace(rs.getInt(1), parseJson(rs.getString(2)));
 				// split Track at points with long distance or big changes in
 				// height.
-				if (trace.getGeom().getNumGeometries() > 1) {
-					LOGGER.info(trace.getId() + ", Num Geom: " + trace.getGeom().getNumGeometries());
-				}
+				// if (trace.getGeom().getNumGeometries() > 1) {
+				// LOGGER.info(trace.getId() + ", Num Geom: " +
+				// trace.getGeom().getNumGeometries());
+				// }
 				List<GpsTracePart> tracepartList = splitter.splitTrace(trace);
 				for (GpsTracePart part : tracepartList) {
 					double[] eleMeasurements = getZValuesAsArray(part);
@@ -76,11 +80,15 @@ public class GpxPreprocessor {
 					// smooth track
 					WeightedMovingAverageTask wmat = new WeightedMovingAverageTask(eleMeasurements, weights);
 					Double[] eleSmoothed = wmat.smoothMeasurements();
+					addSmoothedZValues(part, eleSmoothed);
+
 				}
 
 				writer.write(tracepartList);
-				// LOGGER.info(trace.getId() + " Done" );
+				LOGGER.info(trace.getId() + " Done. Count: " + counter);
+				counter++;
 			}
+			splitter.closeCSVWriter();
 		} catch (SQLException e) {
 			e.printStackTrace();
 			throw new RuntimeException("Could not create Statement");
@@ -96,10 +104,25 @@ public class GpxPreprocessor {
 
 	}
 
+	private void addSmoothedZValues(GpsTracePart part, Double[] eleSmoothed) {
+
+		// create copy of geometry and exchange the z-values
+
+		MultiLineString geomSmoothed = (MultiLineString) part.getGeom().clone();
+
+		// exchange z-Values
+
+		for (int i = 0; i < geomSmoothed.getNumPoints(); i++) {
+			geomSmoothed.getCoordinates()[i].z = eleSmoothed[i];
+		}
+
+		part.setGeomSmoothed(geomSmoothed);
+	}
+
 	private double[] parseWeights(String weights) {
 		String[] str = weights.split(",");
 		double[] w = new double[str.length];
-		for (int i = 0; i<str.length;i++){
+		for (int i = 0; i < str.length; i++) {
 			w[i] = Double.valueOf(str[i].replaceAll(" ", ""));
 		}
 		return w;
@@ -107,18 +130,18 @@ public class GpxPreprocessor {
 
 	private double[] getZValuesAsArray(GpsTracePart part) {
 		double[] zValues = new double[part.getGeom().getNumPoints()];
-		
-		for (int i=0; i<zValues.length; i++){
-			zValues[i]=part.getGeom().getCoordinates()[i].z;
+
+		for (int i = 0; i < zValues.length; i++) {
+			zValues[i] = part.getGeom().getCoordinates()[i].z;
 		}
-		
+
 		return zValues;
 	}
 
 	private MultiLineString parseJson(String json) {
 		JSONObject obj = null;
 		MultiLineString multiLine = null;
-		GeometryFactory geomF = new GeometryFactory();
+		GeometryFactory geomF = new GeometryFactory(new PrecisionModel(), 4326);
 		try {
 			obj = new JSONObject(json);
 			String type = obj.getString("type");
@@ -141,6 +164,7 @@ public class GpxPreprocessor {
 					lineList.add(geomF.createLineString(pointList.toArray(new Coordinate[pointList.size()])));
 				}
 				multiLine = geomF.createMultiLineString(lineList.toArray(new LineString[lineList.size()]));
+				multiLine.setSRID(4326);
 			}
 		} catch (JSONException e) {
 			e.printStackTrace();
@@ -150,10 +174,7 @@ public class GpxPreprocessor {
 
 	}
 
-	private GpsTrace createTrace(ResultSet rs) {
 
-		return null;
-	}
 
 	public void close() {
 

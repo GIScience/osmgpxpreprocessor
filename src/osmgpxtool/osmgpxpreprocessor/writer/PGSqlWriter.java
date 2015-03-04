@@ -20,11 +20,10 @@ public class PGSqlWriter {
 	private Connection con;
 	private Properties p;
 	private PreparedStatement insert;
-	private PreparedStatement insert_profiles;
 
 	private WKBWriter wkbWriter;
 	int batchSize = 0;
-	private int lastStreetWritten = 0;
+
 
 	public PGSqlWriter(Connection con, Properties props) {
 		this.con = con;
@@ -43,12 +42,12 @@ public class PGSqlWriter {
 			create.addBatch("DROP TABLE IF EXISTS " + tableName + ";");
 			create.addBatch("CREATE TABLE "
 					+ tableName
-					+ " (\"gpx_id\" integer NOT NULL, \"part_id\" integer NOT NULL, \"geom\" geometry NOT NULL, CONSTRAINT \""
+					+ " (\"gpx_id\" integer NOT NULL, \"part_id\" integer NOT NULL, \"geom\" geometry NOT NULL, \"geom_smoothed\" geometry NOT NULL, CONSTRAINT \""
 					+ tableName + "_PK\" PRIMARY KEY (gpx_id, part_id));");
 			create.executeBatch();
 
 			insert = con.prepareStatement("INSERT INTO " + tableName
-					+ " (\"gpx_id\",\"part_id\", \"geom\") VALUES(?,?,ST_GeomFromEWKB(?));");
+					+ " (\"gpx_id\",\"part_id\", \"geom\", \"geom_smoothed\") VALUES(?,?,ST_GeomFromEWKB(?),ST_GeomFromEWKB(?));");
 
 		} catch (SQLException e) {
 			e.printStackTrace();
@@ -65,6 +64,7 @@ public class PGSqlWriter {
 				insert.setInt(1, t.getId());
 				insert.setInt(2, t.getPartId());
 				insert.setBytes(3, wkbWriter.write(t.getGeom()));
+				insert.setBytes(4, wkbWriter.write(t.getGeomSmoothed()));
 				insert.addBatch();
 				batchSize++;
 				// TODO: uncomment if you want to write the profile line to
