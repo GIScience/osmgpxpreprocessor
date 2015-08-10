@@ -1,11 +1,9 @@
 package osmgpxtool.osmgpxpreprocessor;
 
 import java.math.BigDecimal;
-import java.util.stream.IntStream;
+import java.util.ArrayList;
 
 import org.apache.commons.math3.stat.descriptive.moment.Mean;
-
-import com.vividsolutions.jts.math.MathUtil;
 
 public class WeightedMovingAverageTask {
 	private double[] weights;
@@ -46,8 +44,8 @@ public class WeightedMovingAverageTask {
 			// calculate mean of measurement[i] and the weights.length / 2
 			// number of measurements before and after measurement[i]
 			int n = -weights.length / 2;
-			double[] m = new double[weights.length];
 			if (i >= Math.abs(n) && i<measurements.length-Math.abs(n)) {
+				double[] m = new double[weights.length];
 				for (int a = 0; a < m.length; a++) {
 					m[a] = measurements[i + n];
 					n++;
@@ -55,7 +53,24 @@ public class WeightedMovingAverageTask {
 				Mean mean = new Mean();
 				smoothed[i] = Double.valueOf(mean.evaluate(m, weights));
 			} else {
-				smoothed[i] = Double.NaN;
+				
+				 // calculated unweighted averagewith the proceesing 2 and following 2 values. If values do not exist, just use the value, which exist.
+
+					ArrayList<Double> m = new ArrayList<Double>();
+
+					for (int a = 0; a < weights.length; a++) {
+						if(i+n>=0 && i+n <measurements.length){
+							m.add(measurements[i + n]);
+						}
+						n++;
+					}
+					Mean mean = new Mean();
+					double[] m1 = new double[m.size()];
+					for(int u=0; u<m.size();u++){
+						m1[u] = m.get(u);
+					}
+					smoothed[i] = Double.valueOf(mean.evaluate(m1));
+				
 			}
 		}
 		return smoothed;

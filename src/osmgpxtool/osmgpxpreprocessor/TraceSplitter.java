@@ -1,43 +1,34 @@
 package osmgpxtool.osmgpxpreprocessor;
 
-import java.io.FileWriter;
 import java.io.IOException;
-import java.text.DecimalFormat;
+import java.sql.Connection;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 
 import org.geotools.geometry.jts.JTS;
-import org.geotools.referencing.crs.DefaultGeocentricCRS;
 import org.geotools.referencing.crs.DefaultGeographicCRS;
 import org.opengis.referencing.operation.TransformException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import osmgpxtool.osmgpxpreprocessor.gps.GpsTrace;
+import osmgpxtool.osmgpxpreprocessor.gps.GpsTracePart;
 
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.GeometryFactory;
 import com.vividsolutions.jts.geom.LineString;
 import com.vividsolutions.jts.geom.MultiLineString;
 
-import osmgpxtool.osmgpxpreprocessor.gps.GpsTrace;
-import osmgpxtool.osmgpxpreprocessor.gps.GpsTracePart;
-
 public class TraceSplitter {
 	static Logger LOGGER = LoggerFactory.getLogger(TraceSplitter.class);
 
 	private Properties p;
 	private GeometryFactory geomF = new GeometryFactory();
-	private FileWriter writer;
-
-	public TraceSplitter(Properties p) throws IOException {
+	
+	public TraceSplitter(Properties p, Connection con) throws IOException {
 		this.p = p;
 
-		// TODO: uncomment if csv should be written
-		/*
-		 * writer = new FileWriter(
-		 * "C:/Users/Steffen/Documents/_Studium/Master/5. Semester aka Thesis/playground/d_h__d_d_test.csv"
-		 * ); writer.append("Gpx_id;lon;lat;d_h;distance\n");
-		 */
 	}
 
 	/**
@@ -63,28 +54,19 @@ public class TraceSplitter {
 		MultiLineString fullTrace = trace.getGeom();
 		MultiLineString mLineToSplit = fullTrace;
 		int partId = 0;
+	
+
 		boolean splittingConditionMet = false;
 		for (int i = 0; i < fullTrace.getNumGeometries(); i++) {
+
 			LineString line = (LineString) fullTrace.getGeometryN(i);
 			for (int a = 0; a < line.getCoordinates().length - 1; a++) {
 				// check distance between a and a+1
 				double dis = JTS.orthodromicDistance(line.getCoordinates()[a], line.getCoordinates()[a + 1],
 						DefaultGeographicCRS.WGS84_3D);
-				// check height differece between a and a+1
-				double deltaH = Math.abs(line.getCoordinates()[a].z - line.getCoordinates()[a + 1].z);
-				// LOGGER.info("trace id:" + trace.getId() + " distance=" + dis
-				// + " delta_h=" + deltaH);
-
-				// write into csv: lon,lat,lon1,lat1, d_h, dis
-				// TODO: uncomment if csv should be written
-				/*
-				 * DecimalFormat df = new DecimalFormat("####0.000");
-				 * 
-				 * writer.append(trace.getId() +";" + line.getCoordinates()[a].x
-				 * +";"+ line.getCoordinates()[a].y +";"+ df.format(deltaH)
-				 * +";"+ df.format(dis)+"\n");
-				 */
-
+				// check height difference between a and a+1
+				double deltaH = Math.abs(line.getCoordinates()[a].z - line.getCoordinates()[a + 1].z); // GPS
+	
 				if (dis < 0.1d || dis > Double.valueOf(p.getProperty("splitTraceDis"))
 						|| deltaH > Double.valueOf(p.getProperty("splitTraceHeight"))) {
 					splittingConditionMet = true;
@@ -97,7 +79,7 @@ public class TraceSplitter {
 					// splitted[0] may be empty. if it is empty, don't add it to
 					// parts
 					if (splitted[0].getNumGeometries() > 0) {
-						parts.add(new GpsTracePart(trace.getId(), partId, splitted[0]));
+						parts.add(new GpsTracePart(trace.getId(), trace.getTrkId(), partId, splitted[0]));
 						partId++;
 					}
 					// splitted[1] assign to mLineTosplit
@@ -115,8 +97,12 @@ public class TraceSplitter {
 		 * point
 		 */
 		if (parts.isEmpty() && splittingConditionMet == false) {
-			parts.add(new GpsTracePart(trace.getId(), 0, trace.getGeom()));
+			parts.add(new GpsTracePart(trace.getId(), trace.getTrkId(), 0, trace.getGeom()));
 		}
+		
+		
+		
+		
 		return parts;
 	}
 
@@ -173,11 +159,6 @@ public class TraceSplitter {
 		return mLineArr;
 	}
 
-	public void closeCSVWriter() throws IOException {
-		// TODO uncomment if csv is written
-		/*
-		 * writer.flush(); writer.close();
-		 */
-	}
+
 
 }

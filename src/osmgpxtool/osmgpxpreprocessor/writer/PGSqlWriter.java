@@ -37,17 +37,24 @@ public class PGSqlWriter {
 		try {
 
 			// for creation of databases
-			String tableName = p.getProperty("t_gpxName") + "_" + p.getProperty("dbOutputSuffix");
+			String tableName = p.getProperty("t_gpxrawName") + "_" + p.getProperty("dbPreProOutputSuffix");
 			create = con.createStatement();
 			create.addBatch("DROP TABLE IF EXISTS " + tableName + ";");
 			create.addBatch("CREATE TABLE "
 					+ tableName
-					+ " (\"gpx_id\" integer NOT NULL, \"part_id\" integer NOT NULL, \"geom\" geometry NOT NULL, \"geom_smoothed\" geometry NOT NULL, CONSTRAINT \""
-					+ tableName + "_PK\" PRIMARY KEY (gpx_id, part_id));");
+					+ " (\"gpx_id\" integer NOT NULL,\"trk_id\" integer NOT NULL, \"part_id\" integer NOT NULL, \"geom\" geometry NOT NULL, \"geom_smoothed\" geometry , CONSTRAINT \""
+					+ tableName + "_PK\" PRIMARY KEY (gpx_id, trk_id,part_id));");
+			
+			
+			create.addBatch("CREATE INDEX "+tableName+"_geomsmoothed_index ON "+tableName+" USING gist (geom_smoothed);");
+			create.addBatch("CREATE INDEX "+tableName+"_geom_index ON "+tableName+" USING gist (geom);");
+
+			
+			
 			create.executeBatch();
 
 			insert = con.prepareStatement("INSERT INTO " + tableName
-					+ " (\"gpx_id\",\"part_id\", \"geom\", \"geom_smoothed\") VALUES(?,?,ST_GeomFromEWKB(?),ST_GeomFromEWKB(?));");
+					+ " (\"gpx_id\",\"trk_id\", \"part_id\", \"geom\", \"geom_smoothed\") VALUES(?,?,?,ST_GeomFromEWKB(?),ST_GeomFromEWKB(?));");
 
 		} catch (SQLException e) {
 			e.printStackTrace();
@@ -62,36 +69,26 @@ public class PGSqlWriter {
 		for (GpsTracePart t : tracepartList) {
 			try {
 				insert.setInt(1, t.getId());
-				insert.setInt(2, t.getPartId());
-				insert.setBytes(3, wkbWriter.write(t.getGeom()));
-				insert.setBytes(4, wkbWriter.write(t.getGeomSmoothed()));
+				insert.setInt(2, t.getTrkId());
+				insert.setInt(3, t.getPartId());
+				insert.setBytes(4, wkbWriter.write(t.getGeom()));
+				if (t.getGeomSmoothed()!=null){
+					insert.setBytes(5, wkbWriter.write(t.getGeomSmoothed()));
+				}else{
+					insert.setNull(5, java.sql.Types.BINARY);
+				}
 				insert.addBatch();
 				batchSize++;
-				// TODO: uncomment if you want to write the profile line to
-				// database
-				/*
-				 * if (lastStreetWritten != street.getId()) { GeometryFactory
-				 * geomF = new GeometryFactory(); MultiLineString profiles =
-				 * geomF.createMultiLineString(street.getProfiles().toArray(new
-				 * LineString[0])); insert_profiles.setInt(1, street.getId());
-				 * insert_profiles.setBytes(2, wkbWriter.write(profiles));
-				 * insert_profiles.addBatch(); }
-				 * 
-				 * lastStreetWritten = street.getId();
-				 */
+				
 				if (batchSize == 10000) {
 					batchSize = 0;
 					insert.executeBatch();
 					insert.clearBatch();
-					// TODO: uncomment if you want to write the profile line to
-					// database
-					/*
-					 * insert_profiles.executeBatch();
-					 * insert_profiles.clearBatch();
-					 */
+	
 				}
 			} catch (SQLException e) {
 				e.printStackTrace();
+				e.getNextException().printStackTrace();
 				System.exit(1);
 			}
 		}
@@ -106,14 +103,11 @@ public class PGSqlWriter {
 				insert.executeBatch();
 				insert.close();
 			}
-
 		} catch (SQLException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 
-		// don't close database connection, this is done, where is was
-		// established
+	
 	}
 
 }

@@ -4,8 +4,6 @@ import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Properties;
 
 import org.apache.commons.cli.BasicParser;
@@ -16,21 +14,10 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
-import org.geotools.data.DataStore;
-import org.geotools.data.DataStoreFinder;
-import org.geotools.data.DefaultTransaction;
-import org.geotools.data.FeatureReader;
-import org.geotools.data.Query;
-import org.geotools.data.Transaction;
-import org.opengis.feature.Feature;
-import org.opengis.feature.simple.SimpleFeature;
-import org.opengis.feature.simple.SimpleFeatureType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import osmgpxtool.osmgpxpreprocessor.writer.PGSqlWriter;
-
-
 
 
 public class Main {
@@ -56,10 +43,14 @@ public class Main {
 		writer.init();
 		
 		GpxPreprocessor proc = new GpxPreprocessor(dbConnection, props, writer);
-		 proc.run();
+		proc.run();
 		 
-		 proc.close();
-		 writer.close();
+		writer.close();
+		try {
+			dbConnection.close();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
 
 	}
 	
@@ -125,6 +116,7 @@ public class Main {
 		}
 	}
 
+	@SuppressWarnings("static-access")
 	private static void setupArgumentOptions() {
 		// parse command line arguments
 		cmdOptions.addOption(new Option("h", "help", false, "displays help"));

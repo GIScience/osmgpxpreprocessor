@@ -1,8 +1,6 @@
 package osmgpxtool.osmgpxpreprocessor;
 
 import java.io.IOException;
-import java.io.Reader;
-import java.io.StringReader;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -11,10 +9,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 
-import junit.framework.Assert;
-
-import org.geotools.geojson.geom.GeometryJSON;
-import org.hsqldb.lib.StringInputStream;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -22,15 +16,15 @@ import org.opengis.referencing.operation.TransformException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import osmgpxtool.osmgpxpreprocessor.gps.GpsTrace;
+import osmgpxtool.osmgpxpreprocessor.gps.GpsTracePart;
+import osmgpxtool.osmgpxpreprocessor.writer.PGSqlWriter;
+
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.GeometryFactory;
 import com.vividsolutions.jts.geom.LineString;
 import com.vividsolutions.jts.geom.MultiLineString;
 import com.vividsolutions.jts.geom.PrecisionModel;
-
-import osmgpxtool.osmgpxpreprocessor.gps.GpsTrace;
-import osmgpxtool.osmgpxpreprocessor.gps.GpsTracePart;
-import osmgpxtool.osmgpxpreprocessor.writer.PGSqlWriter;
 
 public class GpxPreprocessor {
 	static Logger LOGGER = LoggerFactory.getLogger(GpxPreprocessor.class);
@@ -39,11 +33,13 @@ public class GpxPreprocessor {
 	private Properties p;
 	private PGSqlWriter writer;
 
+
 	public GpxPreprocessor(Connection dbConnection, Properties props, PGSqlWriter writer) {
 		super();
 		this.con = dbConnection;
 		this.p = props;
 		this.writer = writer;
+
 	}
 
 	public void init() {
@@ -58,15 +54,14 @@ public class GpxPreprocessor {
 		// p.getProperty("t_gpxName"),p.getProperty("t_gpxGeomCol"));
 		Statement s;
 		ResultSet rs = null;
-		TraceSplitter splitter = new TraceSplitter(p);
+		TraceSplitter splitter = new TraceSplitter(p, con);
 		try {
 			s = con.createStatement();
-			rs = s.executeQuery("SELECT " + p.getProperty("t_gpxIdCol") + "," + "ST_ASGEOJSON("
-					+ p.getProperty("t_gpxGeomCol") + ") as " + p.getProperty("t_gpxGeomCol") + " FROM "
-					+ p.getProperty("t_gpxName") + ";");
-			int counter = 0;
+			rs = s.executeQuery("SELECT " + p.getProperty("t_gpxrawIdCol") + "," + p.getProperty("t_trkrawIdCol") + ","
+					+ "ST_ASGEOJSON(" + p.getProperty("t_gpxrawGeomCol") + ") as " + p.getProperty("t_gpxrawGeomCol")
+					+ " FROM " + p.getProperty("t_gpxrawName") + ";");
 			while (rs.next()) {
-				GpsTrace trace = new GpsTrace(rs.getInt(1), parseJson(rs.getString(2)));
+				GpsTrace trace = new GpsTrace(rs.getInt(1), rs.getInt(2), parseJson(rs.getString(3)));
 				// split Track at points with long distance or big changes in
 				// height.
 				// if (trace.getGeom().getNumGeometries() > 1) {
@@ -84,11 +79,14 @@ public class GpxPreprocessor {
 
 				}
 
+
+
+				
+
 				writer.write(tracepartList);
-				LOGGER.info(trace.getId() + " Done. Count: " + counter);
-				counter++;
+				// LOGGER.info(trace.getId() + " Done. Count: " + counter);
+			
 			}
-			splitter.closeCSVWriter();
 		} catch (SQLException e) {
 			e.printStackTrace();
 			throw new RuntimeException("Could not create Statement");
@@ -106,17 +104,47 @@ public class GpxPreprocessor {
 
 	private void addSmoothedZValues(GpsTracePart part, Double[] eleSmoothed) {
 
+		GeometryFactory geomF = new GeometryFactory();
 		// create copy of geometry and exchange the z-values
 
-		MultiLineString geomSmoothed = (MultiLineString) part.getGeom().clone();
+		// MultiLineString geomSmoothed = (MultiLineString)
+		// part.getGeom().clone();
+
+		int newValueCounter = 0;
 
 		// exchange z-Values
+		List<LineString> lines = new ArrayList<LineString>();
+		for (int i = 0; i < part.getGeom().getNumGeometries(); i++) {
+			List<Coordinate> coords = new ArrayList<Coordinate>();
+			Coordinate[] cArr = part.getGeom().getGeometryN(i).getCoordinates();
+			for (int a = 0; a < cArr.length; a++) {
+				Double newZ = eleSmoothed[newValueCounter];
 
-		for (int i = 0; i < geomSmoothed.getNumPoints(); i++) {
-			geomSmoothed.getCoordinates()[i].z = eleSmoothed[i];
+				if (!newZ.equals(Double.NaN)) {
+					Coordinate c = new Coordinate(cArr[a].x, cArr[a].y, newZ);
+					coords.add(c);
+				}
+				newValueCounter++;
+			}
+			// create line string and add to linestring list
+			if (coords.size() > 1) {
+				LineString line = geomF.createLineString(coords.toArray(new Coordinate[coords.size()]));
+				if (line.isValid()) {
+					lines.add(line);
+				}
+			}
+
 		}
 
-		part.setGeomSmoothed(geomSmoothed);
+		if (!lines.isEmpty()) {
+			MultiLineString geomSmoothed = geomF.createMultiLineString(lines.toArray(new LineString[lines.size()]));
+			geomSmoothed.setSRID(4326);
+			part.setGeomSmoothed(geomSmoothed);
+
+		} else {
+			part.setGeomSmoothed(null);
+
+		}
 	}
 
 	private double[] parseWeights(String weights) {
@@ -174,12 +202,6 @@ public class GpxPreprocessor {
 
 	}
 
-
-
-	public void close() {
-
-	}
-
 	/**
 	 * This method checks, if all table and columns name, given in
 	 * matching.properties exist in the database. If not all given names are
@@ -190,10 +212,10 @@ public class GpxPreprocessor {
 		try {
 			Statement s = con.createStatement();
 
-			ResultSet rs = s.executeQuery("SELECT * FROM " + p.getProperty("t_gpxName") + " WHERE false");
+			ResultSet rs = s.executeQuery("SELECT * FROM " + p.getProperty("t_gpxrawName") + " WHERE false");
 			try {
-				rs.findColumn(p.getProperty("t_gpxIdCol"));
-				rs.findColumn(p.getProperty("t_gpxGeomCol"));
+				rs.findColumn(p.getProperty("t_gpxrawIdCol"));
+				rs.findColumn(p.getProperty("t_gpxrawGeomCol"));
 			} catch (SQLException e) {
 				LOGGER.error("Coloumn is missing in gpx table.");
 				e.printStackTrace();

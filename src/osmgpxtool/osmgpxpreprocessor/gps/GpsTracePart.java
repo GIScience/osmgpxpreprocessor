@@ -11,12 +11,13 @@ public class GpsTracePart extends GpsTrace {
 		return geomSmoothed;
 	}
 
+
 	public void setGeomSmoothed(MultiLineString geomSmoothed) {
 		this.geomSmoothed = geomSmoothed;
 	}
 
-	public GpsTracePart(int gpsId, int partId, MultiLineString geom) {
-		super(gpsId, geom);
+	public GpsTracePart(int gpsId, int trkId, int partId, MultiLineString geom) {
+		super(gpsId,trkId, geom);
 		this.partId = partId;
 	}
 
