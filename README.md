@@ -13,8 +13,9 @@ Ideally, the traces have been imported to the PostgresQL/PostGIS database, using
 2. install git
 3. clone project `$ git clone https://github.com/GIScience/osmgpxpreprocessor`
 4. go into project directory `$ cd osmgpxpreprocessor/`
-5. run maven `$ mvn clean package`
-6. start application `java -jar target/osmgpxpreprocessor-0.1.jar <args>`
+5. if necessary, adjust the properties file in resources/preprocessor.properties
+6. run maven `$ mvn clean package`
+7. start application `java -jar target/osmgpxpreprocessor-0.1.jar <args>`
 
 ### Usage
 ```
