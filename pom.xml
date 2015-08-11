@@ -32,7 +32,7 @@
 				<configuration>
 					<archive>
 						<manifest>
-							<mainClass>osmgpxtool.osmgpxpreprocessor.Main</mainClass>
+							<mainClass>osmgpxtool.preprocessor.Main</mainClass>
 						</manifest>
 					</archive>
 				</configuration>
