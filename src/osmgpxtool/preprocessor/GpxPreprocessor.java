@@ -57,9 +57,9 @@ public class GpxPreprocessor {
 		TraceSplitter splitter = new TraceSplitter(p, con);
 		try {
 			s = con.createStatement();
-			rs = s.executeQuery("SELECT " + p.getProperty("t_gpxrawIdCol") + "," + p.getProperty("t_trkrawIdCol") + ","
-					+ "ST_ASGEOJSON(" + p.getProperty("t_gpxrawGeomCol") + ") as " + p.getProperty("t_gpxrawGeomCol")
-					+ " FROM " + p.getProperty("t_gpxrawName") + ";");
+			rs = s.executeQuery("SELECT " + p.getProperty("t_gpxIdCol") + "," + p.getProperty("t_trkIdCol") + ","
+					+ "ST_ASGEOJSON(" + p.getProperty("t_gpxGeomCol") + ") as " + p.getProperty("t_gpxGeomCol")
+					+ " FROM " + p.getProperty("t_gpxName") + ";");
 			while (rs.next()) {
 				GpsTrace trace = new GpsTrace(rs.getInt(1), rs.getInt(2), parseJson(rs.getString(3)));
 				// split Track at points with long distance or big changes in
@@ -212,10 +212,10 @@ public class GpxPreprocessor {
 		try {
 			Statement s = con.createStatement();
 
-			ResultSet rs = s.executeQuery("SELECT * FROM " + p.getProperty("t_gpxrawName") + " WHERE false");
+			ResultSet rs = s.executeQuery("SELECT * FROM " + p.getProperty("t_gpxName") + " WHERE false");
 			try {
-				rs.findColumn(p.getProperty("t_gpxrawIdCol"));
-				rs.findColumn(p.getProperty("t_gpxrawGeomCol"));
+				rs.findColumn(p.getProperty("t_gpxIdCol"));
+				rs.findColumn(p.getProperty("t_gpxGeomCol"));
 			} catch (SQLException e) {
 				LOGGER.error("Coloumn is missing in gpx table.");
 				e.printStackTrace();

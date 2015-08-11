@@ -37,7 +37,7 @@ public class PGSqlWriter {
 		try {
 
 			// for creation of databases
-			String tableName = p.getProperty("t_gpxrawName") + "_" + p.getProperty("dbPreProOutputSuffix");
+			String tableName = p.getProperty("t_gpxName") + "_" + p.getProperty("dbPreProOutputSuffix");
 			create = con.createStatement();
 			create.addBatch("DROP TABLE IF EXISTS " + tableName + ";");
 			create.addBatch("CREATE TABLE "
