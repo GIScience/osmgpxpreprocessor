@@ -20,14 +20,17 @@ Ideally, the traces have been imported to the PostgresQL/PostGIS database, using
 ### Usage
 ```
  -h,--help              displays help
+Required Arguments:
  -D,--database          Name of database
- -H,--host <arg>        Database host <default:localhost>
- -P,--port <arg>        Database port <default:5432>
  -PW,--password <arg>   Password of DB-User
  -U,--user <arg>        Name of DB-Username
+
+
+Optional Arguments:
+ -H,--host <arg>        Database host <default:localhost>
+ -P,--port <arg>        Database port <default:5432>
  -s <arg>               Suffix of output table in database. <default:preprocessed>
-
-
+ 
 Example java -jar target/osmgpxpreprocessor-0.1.jar -D gpx_db -U postgres -PW xxx
 
 
