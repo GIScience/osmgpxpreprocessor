@@ -27,12 +27,12 @@ Ideally, the traces have been imported to the PostgresQL/PostGIS database, using
  -s <arg>               Suffix of output table in database. <default:preprocessed>
 
 
-Example java -jar targer/osmgpxpreprocessor-0.1.jar -D gpx_db -U postgres -PW xxx
+Example java -jar target/osmgpxpreprocessor-0.1.jar -D gpx_db -U postgres -PW xxx
 
 
  ```
  
- ### Citation
+### Citation
 
 When using this software for scientific purposes, please cite:
 
