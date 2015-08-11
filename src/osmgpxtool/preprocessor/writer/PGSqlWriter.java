@@ -1,4 +1,4 @@
-package osmgpxtool.osmgpxpreprocessor.writer;
+package osmgpxtool.preprocessor.writer;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -7,7 +7,7 @@ import java.sql.Statement;
 import java.util.List;
 import java.util.Properties;
 
-import osmgpxtool.osmgpxpreprocessor.gps.GpsTracePart;
+import osmgpxtool.preprocessor.gps.GpsTracePart;
 
 import com.vividsolutions.jts.io.WKBWriter;
 

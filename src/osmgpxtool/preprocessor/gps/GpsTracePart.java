@@ -1,4 +1,4 @@
-package osmgpxtool.osmgpxpreprocessor.gps;
+package osmgpxtool.preprocessor.gps;
 
 import com.vividsolutions.jts.geom.MultiLineString;
 

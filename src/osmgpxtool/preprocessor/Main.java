@@ -1,4 +1,4 @@
-package osmgpxtool.osmgpxpreprocessor;
+package osmgpxtool.preprocessor;
 
 import java.io.IOException;
 import java.sql.Connection;
@@ -17,7 +17,7 @@ import org.apache.commons.cli.ParseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import osmgpxtool.osmgpxpreprocessor.writer.PGSqlWriter;
+import osmgpxtool.preprocessor.writer.PGSqlWriter;
 
 
 public class Main {

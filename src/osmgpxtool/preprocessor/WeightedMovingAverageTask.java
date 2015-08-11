@@ -1,4 +1,4 @@
-package osmgpxtool.osmgpxpreprocessor;
+package osmgpxtool.preprocessor;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;

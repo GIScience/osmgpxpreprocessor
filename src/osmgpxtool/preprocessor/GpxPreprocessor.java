@@ -1,4 +1,4 @@
-package osmgpxtool.osmgpxpreprocessor;
+package osmgpxtool.preprocessor;
 
 import java.io.IOException;
 import java.sql.Connection;
@@ -16,9 +16,9 @@ import org.opengis.referencing.operation.TransformException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import osmgpxtool.osmgpxpreprocessor.gps.GpsTrace;
-import osmgpxtool.osmgpxpreprocessor.gps.GpsTracePart;
-import osmgpxtool.osmgpxpreprocessor.writer.PGSqlWriter;
+import osmgpxtool.preprocessor.gps.GpsTrace;
+import osmgpxtool.preprocessor.gps.GpsTracePart;
+import osmgpxtool.preprocessor.writer.PGSqlWriter;
 
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.GeometryFactory;
